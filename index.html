@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Speed Arithmetic Trainer</title>
+  <style>
+    body {
+      font-family: monospace;
+      background-color: #121212;
+      color: #e0e0e0;
+      text-align: center;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #ffffff;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background-color: #1e1e1e;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+    }
+
+    .problem {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    input[type="text"], input[type="number"] {
+      font-size: 1.2rem;
+      padding: 6px;
+      margin: 5px;
+      background-color: #2e2e2e;
+      border: 1px solid #555;
+      color: #fff;
+      border-radius: 6px;
+    }
+
+    input[type="checkbox"] {
+      transform: scale(1.2);
+      margin-right: 10px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #03dac5;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #01b2a4;
+    }
+
+    .stats {
+      margin-top: 1rem;
+    }
+
+    .description {
+      text-align: left;
+      margin-bottom: 20px;
+      color: #ccc;
+    }
+
+    #gameArea {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>The Arithmetic Game</h1>
+    <p class="description">
+      The Arithmetic Game is a fast-paced speed drill where you are given two minutes to solve as many arithmetic problems as you can.
+    </p>
+
+    <form id="settingsForm">
+      <div>
+        <label><input type="checkbox" value="add" class="operation"> Addition</label><br>
+        <label><input type="checkbox" value="sub" class="operation"> Subtraction</label><br>
+        <label><input type="checkbox" value="mul" class="operation"> Multiplication</label><br>
+        <label><input type="checkbox" value="div" class="operation"> Division</label><br>
+      </div>
+
+      <label>Range:
+        (<input type="number" id="min" value="2"> to 
+        <input type="number" id="max" value="100">)
+      </label><br>
+
+      <label>Duration: 
+        <input type="number" id="duration" value="120"> seconds
+      </label><br>
+
+      <button type="submit">Start Game</button>
+    </form>
+
+    <div id="gameArea">
+      <div class="problem" id="problem">Click Start to Begin</div>
+      <input type="text" id="answer" autocomplete="off" disabled />
+    
+      <div class="stats">
+        <p>Score: <span id="score">0</span></p>
+        <p>Time Left: <span id="timer">0</span>s</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let num1, num2, score = 0, timeLeft = 0, interval, correctAnswer;
+    const problem = document.getElementById('problem');
+    const answer = document.getElementById('answer');
+    const scoreDisplay = document.getElementById('score');
+    const timerDisplay = document.getElementById('timer');
+    const form = document.getElementById('settingsForm');
+    const gameArea = document.getElementById('gameArea');
+
+    function generateProblem(operations, min, max) {
+      const op = operations[Math.floor(Math.random() * operations.length)];
+      const a = Math.floor(Math.random() * (max - min + 1)) + min;
+      const b = Math.floor(Math.random() * (max - min + 1)) + min;
+
+      num1 = (op === 'div' || op === 'sub') ? Math.max(a, b) : a;
+      num2 = (op === 'div' || op === 'sub') ? Math.min(a, b) : b;
+
+      switch (op) {
+        case 'add':
+          problem.textContent = `${num1} + ${num2}`;
+          return num1 + num2;
+        case 'sub':
+          problem.textContent = `${num1} - ${num2}`;
+          return num1 - num2;
+        case 'mul':
+          problem.textContent = `${num1} × ${num2}`;
+          return num1 * num2;
+        case 'div':
+          problem.textContent = `${num1} ÷ ${num2}`;
+          return Math.floor(num1 / num2);
+      }
+    }
+
+    form.onsubmit = (e) => {
+      e.preventDefault();
+
+      const checkedOps = Array.from(document.querySelectorAll('.operation:checked'))
+                              .map(cb => cb.value);
+      if (checkedOps.length === 0) {
+        alert('Please select at least one operation.');
+        return;
+      }
+
+      const min = parseInt(document.getElementById('min').value);
+      const max = parseInt(document.getElementById('max').value);
+      const duration = parseInt(document.getElementById('duration').value);
+
+      form.style.display = 'none';
+      gameArea.style.display = 'block';
+      score = 0;
+      scoreDisplay.textContent = score;
+      timeLeft = duration;
+      timerDisplay.textContent = timeLeft;
+      answer.disabled = false;
+      answer.value = '';
+      answer.focus();
+
+      clearInterval(interval);
+      correctAnswer = generateProblem(checkedOps, min, max);
+
+      interval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          problem.textContent = "Time's up!";
+          answer.disabled = true;
+        }
+      }, 1000);
+
+      answer.addEventListener('input', () => {
+        const userInput = parseInt(answer.value.trim());
+        if (userInput === correctAnswer) {
+          score++;
+          scoreDisplay.textContent = score;
+          answer.value = '';
+          correctAnswer = generateProblem(checkedOps, min, max);
+        }
+      });
+    };
+  </script>
+</body>
+</html>
