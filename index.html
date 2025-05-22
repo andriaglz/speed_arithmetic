@@ -46,7 +46,7 @@
     }
 
     button {
-      margin-top: 10px;
+      margin: 10px 5px 0;
       padding: 10px 20px;
       font-size: 1rem;
       background-color: #03dac5;
@@ -110,68 +110,70 @@
         <p>Score: <span id="score">0</span></p>
         <p>Time Left: <span id="timer">0</span>s</p>
       </div>
+
+      <!-- NEW: Menu and Restart buttons -->
+      <button id="menuBtn">Menu</button>
+      <button id="restartBtn">Restart</button>
     </div>
   </div>
 
   <script>
     let num1, num2, score = 0, timeLeft = 0, interval, correctAnswer;
+    let lastSettings = {};
+
     const problem = document.getElementById('problem');
     const answer = document.getElementById('answer');
     const scoreDisplay = document.getElementById('score');
     const timerDisplay = document.getElementById('timer');
     const form = document.getElementById('settingsForm');
     const gameArea = document.getElementById('gameArea');
+    const menuBtn = document.getElementById('menuBtn');
+    const restartBtn = document.getElementById('restartBtn');
 
     function generateProblem(operations, min, max) {
       const op = operations[Math.floor(Math.random() * operations.length)];
-      const a = Math.floor(Math.random() * (max - min + 1)) + min;
-      const b = Math.floor(Math.random() * (max - min + 1)) + min;
-
-      num1 = (op === 'div' || op === 'sub') ? Math.max(a, b) : a;
-      num2 = (op === 'div' || op === 'sub') ? Math.min(a, b) : b;
-
-      switch (op) {
-        case 'add':
-          problem.textContent = `${num1} + ${num2}`;
-          return num1 + num2;
-        case 'sub':
-          problem.textContent = `${num1} - ${num2}`;
-          return num1 - num2;
-        case 'mul':
-          problem.textContent = `${num1} × ${num2}`;
-          return num1 * num2;
-        case 'div':
-          problem.textContent = `${num1} ÷ ${num2}`;
-          return Math.floor(num1 / num2);
+      if (op === 'div') {
+        // ensure integer division: pick divisor and quotient first
+        const divisor = Math.floor(Math.random() * (max - min + 1)) + min;
+        const quotient = Math.floor(Math.random() * (max - min + 1)) + min;
+        num1 = divisor * quotient;
+        num2 = divisor;
+        problem.textContent = `${num1} ÷ ${num2}`;
+        return quotient;
+      } else {
+        const a = Math.floor(Math.random() * (max - min + 1)) + min;
+        const b = Math.floor(Math.random() * (max - min + 1)) + min;
+        num1 = (op === 'sub') ? Math.max(a, b) : a;
+        num2 = (op === 'sub') ? Math.min(a, b) : b;
+        switch (op) {
+          case 'add':
+            problem.textContent = `${num1} + ${num2}`;
+            return num1 + num2;
+          case 'sub':
+            problem.textContent = `${num1} - ${num2}`;
+            return num1 - num2;
+          case 'mul':
+            problem.textContent = `${num1} × ${num2}`;
+            return num1 * num2;
+        }
       }
     }
 
-    form.onsubmit = (e) => {
-      e.preventDefault();
-
-      const checkedOps = Array.from(document.querySelectorAll('.operation:checked'))
-                              .map(cb => cb.value);
-      if (checkedOps.length === 0) {
-        alert('Please select at least one operation.');
-        return;
-      }
-
-      const min = parseInt(document.getElementById('min').value);
-      const max = parseInt(document.getElementById('max').value);
-      const duration = parseInt(document.getElementById('duration').value);
-
+    function startGame(settings) {
+      // save settings for restart
+      lastSettings = settings;
       form.style.display = 'none';
       gameArea.style.display = 'block';
       score = 0;
       scoreDisplay.textContent = score;
-      timeLeft = duration;
+      timeLeft = settings.duration;
       timerDisplay.textContent = timeLeft;
       answer.disabled = false;
       answer.value = '';
       answer.focus();
 
       clearInterval(interval);
-      correctAnswer = generateProblem(checkedOps, min, max);
+      correctAnswer = generateProblem(settings.ops, settings.min, settings.max);
 
       interval = setInterval(() => {
         timeLeft--;
@@ -182,16 +184,39 @@
           answer.disabled = true;
         }
       }, 1000);
+    }
 
-      answer.addEventListener('input', () => {
-        const userInput = parseInt(answer.value.trim());
-        if (userInput === correctAnswer) {
-          score++;
-          scoreDisplay.textContent = score;
-          answer.value = '';
-          correctAnswer = generateProblem(checkedOps, min, max);
-        }
-      });
+    form.onsubmit = e => {
+      e.preventDefault();
+      const ops = Array.from(document.querySelectorAll('.operation:checked'))
+                       .map(cb => cb.value);
+      if (!ops.length) return alert('Please select at least one operation.');
+
+      const min = parseInt(document.getElementById('min').value, 10);
+      const max = parseInt(document.getElementById('max').value, 10);
+      const duration = parseInt(document.getElementById('duration').value, 10);
+
+      startGame({ ops, min, max, duration });
+    };
+
+    answer.addEventListener('input', () => {
+      if (parseInt(answer.value.trim(), 10) === correctAnswer) {
+        score++;
+        scoreDisplay.textContent = score;
+        answer.value = '';
+        correctAnswer = generateProblem(lastSettings.ops, lastSettings.min, lastSettings.max);
+      }
+    });
+
+    menuBtn.onclick = () => {
+      clearInterval(interval);
+      form.style.display = 'block';
+      gameArea.style.display = 'none';
+    };
+
+    restartBtn.onclick = () => {
+      clearInterval(interval);
+      startGame(lastSettings);
     };
   </script>
 </body>
